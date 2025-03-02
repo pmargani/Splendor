@@ -1,0 +1,96 @@
+@startuml
+class Card {
+    get_filtered_cost()
+    get_cost_total_coins()
+    __repr__()
+    __eq__()
+        points
+    color
+    level
+    owner
+    cost
+    __init__()
+}
+class Coin {
+    __repr__()
+        color
+    owner
+    wild
+    __init__()
+}
+class Noble {
+    __repr__()
+        points
+    colors
+    owner
+    __init__()
+}
+class Player {
+    add_coin()
+    add_card()
+    add_noble()
+    can_add_coin()
+    get_total_points()
+    get_coins_dict()
+    get_cards_dict()
+    get_colors_dict()
+    get_cost_difference()
+    can_afford_card()
+    can_take_coin()
+    __repr__()
+    description()
+        name
+    max_coins
+    __init__()
+}
+class Game {
+    init_game()
+    next_turn()
+    get_current_player()
+    add_player()
+    add_card()
+    add_noble()
+    take_next_coin()
+    take_coins()
+    num_coins_available()
+    are_coins_available()
+    take_coins_for_card()
+    buy_most_expensive_card()
+    take_coin_for_card_old()
+    take_coin_for_card()
+    take_coin_of_color()
+    take_turn()
+    play_game()
+    is_game_over()
+    can_buy_card()
+    __repr__()
+    describe_players()
+    describe_coins()
+    describe_cards()
+    describe()
+    validate_game_state()
+        num_players
+    turn
+    num_turns
+    max_turns
+    num_colors
+    num_coins_per_color
+    num_total_coins
+    max_coins_per_turn
+    num_card_levels
+    num_cards_visible
+    winning_points
+    colors
+    num_cards
+    __init__()
+}
+
+Player *-- Game
+Card *-- Game
+Coin *-- Game
+Noble *-- Game
+Card *-- Player
+Coin *-- Player
+Noble *-- Player
+
+@enduml
