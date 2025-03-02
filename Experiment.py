@@ -14,7 +14,7 @@ class Experiment:
         for igame in range(self.num_games):
             game = self.game_class(max_turns=100, winning_points=1)
             game.play_game(interactive=False)
-            input(f"finished game {igame}")
+            # input(f"finished game {igame}")
             self.results.append(copy.copy(game))
 
     def get_results(self):
@@ -29,8 +29,20 @@ class Experiment:
         plt.ylabel('Frequency')
         plt.show()
 
+        final_states = [game.final_state for game in self.results]
+        unique_states = list(set(final_states))
+        state_counts = {state: final_states.count(state) for state in unique_states}
+
+        plt.bar(state_counts.keys(), state_counts.values(), edgecolor='black')
+        plt.title('Histogram of Final States')
+        plt.xlabel('Final State')
+        plt.ylabel('Frequency')
+        plt.xticks(rotation=45)
+        plt.show()
+
+
 def main():
-    experiment = Experiment(Game, 10)  # Replace GameClass with the actual game class name
+    experiment = Experiment(Game, 10000)  # Replace GameClass with the actual game class name
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()

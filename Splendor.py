@@ -151,6 +151,7 @@ class Game:
         self.turn = 0
         self.num_turns = 0
         self.current_player = None
+        self.final_state = None
         
         self.max_turns = max_turns
 
@@ -264,6 +265,30 @@ class Game:
             else:
                 break    
         return took_coin
+
+    def color_with_no_coins(self):
+        return [color for color, coins in self.coins.items() if not coins]
+    
+    def take_random_coins(self, current_player: Player):
+        """
+        Allows the current player to take random coins up to the maximum allowed per turn.
+
+        Args:
+            current_player (Player): The player who is taking the coins.
+
+        Returns:
+            bool: True if a coin was successfully taken, False otherwise.
+        """
+        took_coin = None
+        for _ in range(self.max_coins_per_turn):
+            if current_player.can_take_coin():
+                
+                took_coin = self.take_random_coin(current_player, self.color_with_no_coins())
+                if not took_coin:
+                    break
+            else:
+                break
+        return took_coin
     
     def take_random_coin(self, current_player: Player, disallowed_colors: list):
         available_colors = [color for color, coins in self.coins.items() if coins and color not in disallowed_colors]
@@ -271,6 +296,18 @@ class Game:
             return None
         color = random.choice(available_colors)
         return self.take_coin_of_color(current_player, color)
+
+    def buy_random_card(self, current_player):
+        for level in range(self.num_card_levels):
+            for card in self.cards[level][:self.num_cards_visible]:
+                if self.can_buy_card(current_player, card):
+                    bought_card = self.buy_card(current_player, card)
+                    if bought_card:
+                        print(f"{current_player.name} buys {card}")
+                        return True
+                else:
+                    print(f"{current_player.name} {current_player.get_colors_dict()} cannot buy {card}")    
+        return False
 
     def buy_cheapest_card(self, current_player):
         cheapest_card = None
@@ -325,9 +362,25 @@ class Game:
         return bought_card, last_card
 
     def buy_card(self, player: Player, card: Card):
+        """
+        Allows a player to buy a card if they have the necessary resources.
+
+        This method checks if the player can buy the specified card. If the player can buy the card,
+        it deducts the required resources (first using cards, then using coins if necessary), 
+        adds the card to the player's collection, and removes the card from the available cards.
+
+        Args:
+            player (Player): The player attempting to buy the card.
+            card (Card): The card the player wants to buy.
+
+        Returns:
+            bool: True if the player successfully buys the card, False otherwise.
+        """
         if self.can_buy_card(player, card):
+            # add card to player and remove from game board
             player.add_card(card)
             self.cards[card.level].remove(card)
+            # now pay for the card
             for color, amount in card.cost.items():
                 needs_coins = amount
                 for _ in range(amount):
@@ -335,11 +388,13 @@ class Game:
                     for card in player.cards:
                         if card.color == color:
                             needs_coins -= 1
+                # pay the reminaing balance in coins            
                 if needs_coins > 0:
                     for _ in range(needs_coins):           
                         for coin in player.coins:
                             if coin.color == color:
                                 print(f"{player.name} spends coin {color}")
+                                # remove coin from player and give back to board
                                 player.coins.remove(coin)
                                 self.coins[color].append(coin)
                                 break
@@ -398,6 +453,17 @@ class Game:
         return took_coin
     
     def take_turn(self):
+        """
+        Executes the actions for the current player's turn.
+        The current player is determined and their turn is announced. The player
+        will attempt to buy the most expensive card possible. If they cannot buy
+        a card, they will take coins instead.
+        Strategy:
+        - Buy the most expensive card possible.
+        - If unable to buy a card, take coins for the card last viewed.
+        Returns:
+            None
+        """
 
         current_player = self.get_current_player()
         self.current_player = current_player
@@ -407,13 +473,14 @@ class Game:
         # For now we are taking the simplest strategy
         # of always buying the most expensive card possible,
         # otherwise taking coins (strategy TBD)
-        bought_card, last_card_viewed = self.buy_most_expensive_card(current_player)
-        print(f"last card viewed: {last_card_viewed}")
+        # bought_card, last_card_viewed = self.buy_most_expensive_card(current_player)
+        bought_card = self.buy_random_card(current_player)
+        # print(f"last card viewed: {last_card_viewed}")
         took_coin = False
         if not bought_card:
             # took_coin = self.take_coins(current_player)
-            took_coin = self.take_coins_for_card(current_player, last_card_viewed)
-
+            # took_coin = self.take_coins_for_card(current_player, last_card_viewed)
+            took_coin = self.take_random_coins(current_player)
     
   
         # Example action: player buys a card if they have enough coins
@@ -427,6 +494,20 @@ class Game:
 
 
     def play_game(self, interactive=True):
+        """
+        Play a game of Splendor.
+
+        This method manages the flow of the game, including validating the game state,
+        taking turns, and checking for game-over conditions. It can be run in interactive
+        mode, where the user is prompted to press Enter to continue to the next turn.
+
+        Args:
+            interactive (bool): If True, the game will prompt the user to press Enter to
+                                continue to the next turn. Default is True.
+
+        Returns:
+            None
+        """
 
         if not self.validate_game_state():
             print("Game state is invalid.")
@@ -441,21 +522,33 @@ class Game:
                 print("Game state is invalid.")
                 break
             self.describe()
-            if self.num_coins_available() == 0:
-                input("No coins left on the board.")
-                break
+
             if interactive:
                 input("Press Enter to continue to the next turn...")
             self.next_turn()
 
     def is_game_over(self):
+        """
+        Checks if the game is over based on the maximum number of turns 
+        or if any player has reached the winning points.
+
+        Returns:
+            bool: True if the game is over, False otherwise.
+        """
         if self.max_turns is not None and self.num_turns >= self.max_turns:
+            print("Game over: maximum number of turns reached.")
+            self.final_state = "max_turns"
             return True
         # Example condition: game ends when a player has 15 points
         for player in self.players:
             if sum(card.points for card in player.cards) >= self.winning_points:
                 print(f"{player.name} wins the game!")
+                self.final_state = "winning_points"
                 return True
+        if self.num_coins_available() == 0:
+            print("No coins left on the board.")
+            self.final_state = "no_coins"
+            return True   
         return False
 
     def can_buy_card(self, player: Player, card: Card):
