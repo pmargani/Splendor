@@ -5,6 +5,9 @@ import copy
 
 from CardsLevel0 import AllCardsLevel0
 
+RANDOM_STRATEGY = "RANDOM"
+CHEAPEST_STRATEGY = "CHEAPEST"
+STRATEGIES = [RANDOM_STRATEGY, CHEAPEST_STRATEGY]
 
 COLORS = ["red", "blue", "green", "white", "black"]
 
@@ -56,8 +59,9 @@ class Noble:
         return f"Noble(points={self.points}, colors={self.colors}, owner={self.owner})"
     
 class Player:
-    def __init__(self, name: str):
+    def __init__(self, name: str, strategy: str = RANDOM_STRATEGY):
         self.name = name
+        self.strategy = strategy
         self.coins = []
         self.cards = []
         self.nobles = []
@@ -280,12 +284,17 @@ class Game:
             bool: True if a coin was successfully taken, False otherwise.
         """
         took_coin = None
-        for _ in range(self.max_coins_per_turn):
+        coins_taken = []
+        for i in range(self.max_coins_per_turn):
+            # print(f"coinTake: {i}")
             if current_player.can_take_coin():
-                
-                took_coin = self.take_random_coin(current_player, self.color_with_no_coins())
+                disallowed = self.color_with_no_coins() + coins_taken
+                took_coin = self.take_random_coin(current_player, disallowed_colors=disallowed)
+                # print(f"took_coin: {took_coin}")
                 if not took_coin:
                     break
+                # ensures we don't take that color again this turn
+                coins_taken.append(took_coin.color)
             else:
                 break
         return took_coin
@@ -296,8 +305,22 @@ class Game:
             return None
         color = random.choice(available_colors)
         return self.take_coin_of_color(current_player, color)
+        
 
     def buy_random_card(self, current_player):
+        """
+        Attempts to buy a random card for the current player.
+        This method iterates through the available card levels and visible cards,
+        checking if the current player can buy any of the cards. If a card can be
+        bought, it is purchased and a message is printed indicating the purchase.
+        If the player cannot buy a card, a message is printed indicating the
+        player's inability to buy the card.
+        Args:
+            current_player (Player): The player attempting to buy a card.
+        Returns:
+            bool: True if a card was successfully bought, False otherwise.
+        """
+
         for level in range(self.num_card_levels):
             for card in self.cards[level][:self.num_cards_visible]:
                 if self.can_buy_card(current_player, card):
@@ -455,12 +478,8 @@ class Game:
     def take_turn(self):
         """
         Executes the actions for the current player's turn.
-        The current player is determined and their turn is announced. The player
-        will attempt to buy the most expensive card possible. If they cannot buy
-        a card, they will take coins instead.
-        Strategy:
-        - Buy the most expensive card possible.
-        - If unable to buy a card, take coins for the card last viewed.
+        The current player is determined and their turn is announced. 
+        The player's strategy is checked, and the appropriate action is taken.
         Returns:
             None
         """
@@ -469,29 +488,28 @@ class Game:
         self.current_player = current_player
         print(f"{current_player.name}'s turn")
 
-        # Here is where strategy comes into play.  
-        # For now we are taking the simplest strategy
-        # of always buying the most expensive card possible,
-        # otherwise taking coins (strategy TBD)
-        # bought_card, last_card_viewed = self.buy_most_expensive_card(current_player)
-        bought_card = self.buy_random_card(current_player)
-        # print(f"last card viewed: {last_card_viewed}")
-        took_coin = False
-        if not bought_card:
-            # took_coin = self.take_coins(current_player)
-            # took_coin = self.take_coins_for_card(current_player, last_card_viewed)
-            took_coin = self.take_random_coins(current_player)
-    
-  
-        # Example action: player buys a card if they have enough coins
-        # if not took_coin:
-        #     for card in self.cards:
-        #         if self.can_buy_card(current_player, card):
-        #             current_player.add_card(card)
-        #             self.cards.remove(card)
-        #             print(f"{current_player.name} buys {card}")
-        #             break
+        if current_player.strategy == RANDOM_STRATEGY:
+            self.take_turn_random_strategy(current_player)
+        else:
+            raise "Only one supported strategy currently"
 
+    def take_turn_random_strategy(self, current_player):
+        """
+        Executes a turn for the given player using a random strategy.
+
+        The player will first attempt to buy a random card. If no card is bought,
+        the player will then take random coins.
+
+        Args:
+            current_player (Player): The player whose turn it is to take an action.
+
+        Returns:
+            None
+        """
+
+        bought_card = self.buy_random_card(current_player)
+        if not bought_card:
+            self.take_random_coins(current_player)
 
     def play_game(self, interactive=True):
         """
