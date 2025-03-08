@@ -42,7 +42,7 @@ class Experiment:
 
 
 def main():
-    experiment = Experiment(Game, 10000)  # Replace GameClass with the actual game class name
+    experiment = Experiment(Game, 1000)  # Replace GameClass with the actual game class name
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()

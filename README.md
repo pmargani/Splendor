@@ -82,3 +82,30 @@ print(f"The winner is {winner.name} with {winner.prestige_points} prestige point
 For more detailed information on how to use the `Splendor.py` module, please refer to the module's documentation.
 
 ![Splendor Classes Diagram](SplendorClasses.png)
+
+## Experiments
+
+Once basic game play is established, the Splendor module can be used for running experiments.
+
+### Limited Game Experiments
+
+In our first round of experiments, we have not fully implemented all aspects of the game.  For these limited game experiments, we have not implemented:
+
+   * The top level cards
+   * The 'wild' gold coins
+   * The ability to take two coins of the same color, rather then three of different colors
+   * The ability to reservere a card
+
+And we did implement the following rules/strategies:
+
+   * Game is won with only one point
+   * Players try to buy the first card they can afford
+   * Players choose coins randomly.
+
+Not too surprisingly, this limited game hits deadlock more often than a player winning.  About 85% of the time there are no coins left for 4 players to pick, but no one can afford a card on the table.
+
+![Exp1Hist](Exp1HistNumPlays.png)
+
+![Exp1Hist](Exp1HistStates.png)
+
+This doesn't teach us much, except for the fact that if players don't know what they are doing, the game can't move forward.
