@@ -1,7 +1,7 @@
 import pygame
 import sys
 
-from Splendor import Game, Coin
+from Splendor import Game, RANDOM_STRATEGY, CHEAPEST_STRATEGY
 
 # Constants
 SCREEN_WIDTH = 1200
@@ -115,7 +115,7 @@ def draw_player_old(player, x, y):
     draw_text(f"Cards: {player.get_cards_dict()}", x, y + 90)
 
 def playSplendorPyGame():
-    game = Game(num_players=4, max_turns=None, winning_points=1)
+    game = Game(num_players=4, max_turns=None, winning_points=1, strategy=CHEAPEST_STRATEGY)
 
     print(f"Players: {game.players}")
     initPyGame()
@@ -142,13 +142,14 @@ def playSplendorPyGame():
 
         # Draw number of cards left
         draw_text(f"Cards Left: {sum(len(cards) for cards in game.cards)}", 10, 150)
-
+        draw_text(f"# turns stuck: {game.num_stuck_turns}", 10, 180)
+       
         # Check if the game is over
         if game.is_game_over():
-            draw_text("Game Over", 10, 180)
+            draw_text(game.final_state, 10, 210)
             winner = game.get_winner()
-            if winner:
-                draw_text(f"Winner: {winner.name}", 10, 210)
+            if winner and game.final_state == "winning_points":
+                draw_text(f"Winner: {winner.name}", 10, 240)
     
         # Draw players at the bottom in a horizontal line
         for i, player in enumerate(game.players):
@@ -173,7 +174,7 @@ def playSplendorPyGame():
             if button_rect.collidepoint(event.pos) and can_take_turn and not game_over:
                 game.take_turn()
                 game.next_turn()
-                game.describe()
+                # game.describe()
                 can_take_turn = False
                 if not game.validate_game_state():
                     print("Game state is invalid.")

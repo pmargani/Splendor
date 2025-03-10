@@ -27,6 +27,23 @@ class Card:
     def get_cost_total_coins(self):
         return sum(amount for amount in self.cost.values())
 
+    def get_cost_total_num_colors(self):
+        return len([amount for amount in self.cost.values() if amount > 0])
+    
+    def get_weighted_cost(self):
+        """
+        The ease of buying a card is not just the total coins it costs.
+        It is also how that cost is distributed.  Since a player can only take
+        a certain number of coins for each turn, that makes it harder to buy
+        cards that don't have a wide cost distribution.
+        In other words, it's easier to buy card A whose cost is 4, 1 per color, then 
+        card B whose cost is 3, all just one color!  
+        So how to represent this in just one number?
+        card A: 4 cost / 4 colors = 1
+        card B: 3 cost / 1 color = 3
+        """
+        return self.get_cost_total_coins() / self.get_cost_total_num_colors()
+
     def __repr__(self) -> str:
         return f"Card(points={self.points}, color={self.color}, level={self.level}, cost={self.get_filtered_cost()}, owner={self.owner})"
 
@@ -141,12 +158,14 @@ class Game:
         num_players=4,
         max_turns=None,
         winning_points=15,
-        shuffle=True
+        shuffle=True,
+        strategy=None
         ):
 
         self.num_players = num_players
         self.winning_points = winning_points
         self.shuffle = shuffle
+        self.strategy = strategy
 
         self.cards = [[],[],[]]
 
@@ -156,6 +175,7 @@ class Game:
         self.num_turns = 0
         self.current_player = None
         self.final_state = None
+        self.num_stuck_turns = 0
         
         self.max_turns = max_turns
 
@@ -175,7 +195,7 @@ class Game:
 
         # Create players based on self.num_players
         for i in range(self.num_players):
-            player = Player(name=f"player{i + 1}")
+            player = Player(name=f"player{i + 1}", strategy=self.strategy)
             self.add_player(player)
         self.current_player = self.players[0]
         
@@ -255,6 +275,7 @@ class Game:
         return self.num_coins_available() > 0
     
     def take_coins_for_card(self, current_player, card):
+        print(f"take_coins_for_card {card}")
         took_coin = None
         took_colors = []
         for coinTake in range(self.max_coins_per_turn):
@@ -333,27 +354,37 @@ class Game:
         return False
 
     def buy_cheapest_card(self, current_player):
-        cheapest_card = None
-        bought_card = False
-        for card in self.cards[0][:self.num_cards_visible]:
-            # if self.can_buy_card(current_player, card):
-            if 1:
-                if cheapest_card is None or card.get_cost_total_coins() < cheapest_card.get_cost_total_coins():
-                    cheapest_card = card
+        """
+        Allows the current player to buy the cheapest available card from the visible cards.
+        Args:
+            current_player (Player): The player who is attempting to buy a card.
+        Returns:
+            cheapest_card: what card did they want to buy?
+            bool: True if a card was successfully bought, False otherwise.
+        The method finds the cheapest card that the current player can buy from the visible cards.
+        If a card is bought, it is added to the player's collection, removed from the visible cards,
+        and the corresponding coins are deducted from the player's coins and returned to the bank.
+        """
 
-        if cheapest_card:
-            current_player.add_card(cheapest_card)
-            self.cards[0].remove(cheapest_card)
-            for color, amount in cheapest_card.cost.items():
-                for _ in range(amount):
-                    for coin in current_player.coins:
-                        if coin.color == color:
-                            current_player.coins.remove(coin)
-                            self.coins[color].append(coin)
-                            break
+        # well first just buy any card that can be afforded
+        for card in self.cards[0][:self.num_cards_visible]:
+            if current_player.can_afford_card(card):
+                self.buy_card(current_player, card)
+                return card, True 
+            
+        cheapest_card = None
+        # what's the cheapest card?
+        for card in self.cards[0][:self.num_cards_visible]:
+            print(f"checking card {card} w/ weighted cost {card.get_weighted_cost()}")
+            if cheapest_card is None or card.get_weighted_cost() < cheapest_card.get_weighted_cost():
+                cheapest_card = card
+
+        if cheapest_card and current_player.can_afford_card(cheapest_card):
+            self.buy_card(current_player, cheapest_card)
             print(f"{current_player.name} buys {cheapest_card}")
-            return True
-        return False
+            return cheapest_card, True
+        
+        return cheapest_card, False
     
     def buy_most_expensive_card(self, current_player):
         # TBF: this does not buy most expensive card yet, just buys
@@ -488,11 +519,36 @@ class Game:
         self.current_player = current_player
         print(f"{current_player.name}'s turn")
 
+        took_turn = False
         if current_player.strategy == RANDOM_STRATEGY:
-            self.take_turn_random_strategy(current_player)
+            took_turn = self.take_turn_random_strategy(current_player)
+        elif current_player.strategy == CHEAPEST_STRATEGY:
+            took_turn = self.take_turn_cheapest_strategy(current_player)
         else:
             raise "Only one supported strategy currently"
+        if not took_turn:
+            self.num_stuck_turns += 1
+        else:
+            self.num_stuck_turns = 0    
 
+    def take_turn_cheapest_strategy(self, current_player):
+        """
+        Executes a turn for the given player using the cheapest card strategy.
+
+        The player will first attempt to buy the cheapest available card. If no card is bought,
+        the player will then take coins needed for the cheapest card.
+
+        Args:
+            current_player (Player): The player whose turn it is to take an action.
+
+        Returns:
+            None
+        """
+        cheapest_card, bought_card = self.buy_cheapest_card(current_player)
+        if not bought_card and cheapest_card:
+            return self.take_coins_for_card(current_player, cheapest_card)
+        return bought_card 
+    
     def take_turn_random_strategy(self, current_player):
         """
         Executes a turn for the given player using a random strategy.
@@ -509,8 +565,9 @@ class Game:
 
         bought_card = self.buy_random_card(current_player)
         if not bought_card:
-            self.take_random_coins(current_player)
-
+            return self.take_random_coins(current_player)
+        return bought_card
+    
     def play_game(self, interactive=True):
         """
         Play a game of Splendor.
@@ -563,10 +620,15 @@ class Game:
                 print(f"{player.name} wins the game!")
                 self.final_state = "winning_points"
                 return True
-        if self.num_coins_available() == 0:
-            print("No coins left on the board.")
-            self.final_state = "no_coins"
+        # if self.num_coins_available() == 0:
+            # print("No coins left on the board.")
+            # self.final_state = "no_coins"
+            # return True
+        if self.num_stuck_turns == self.num_players:
+            print("every player is stuck")
+            self.final_state = "players_stuck"
             return True   
+        
         return False
 
     def can_buy_card(self, player: Player, card: Card):

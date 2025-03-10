@@ -281,6 +281,19 @@ class TestCard(unittest.TestCase):
         card2 = Card(points=2, color="blue", level=2, owner=None)
         self.assertNotEqual(self.card, card2)
 
+    def test_get_cost_total_num_colors(self):
+        cost = COLORS_DICT.copy()
+        cost["red"] = 2
+        cost["green"] = 3
+        self.card.cost = cost
+        self.assertEqual(self.card.get_cost_total_num_colors(), 2)
+
+    def test_get_weighted_cost(self):
+        cost = COLORS_DICT.copy()
+        cost["red"] = 2
+        cost["green"] = 3
+        self.card.cost = cost
+        self.assertEqual(self.card.get_weighted_cost(), (2 + 3)/2.0)
 
 if __name__ == "__main__":
     unittest.main()
