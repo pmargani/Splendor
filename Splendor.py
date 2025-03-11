@@ -4,6 +4,8 @@ import random
 import copy
 
 from CardsLevel0 import AllCardsLevel0
+from CardsLevel1 import AllCardsLevel1
+from CardsLevel2 import AllCardsLevel2
 
 RANDOM_STRATEGY = "RANDOM"
 CHEAPEST_STRATEGY = "CHEAPEST"
@@ -203,16 +205,19 @@ class Game:
         self.colors = COLORS #["red", "blue", "green", "white", "black"]
         self.coins = {color: [Coin(color, None) for _ in range(self.num_coins_per_color)] for color in self.colors}
 
-        level = 0 
-
         allCardsLevel0 = copy.deepcopy(AllCardsLevel0)
-        for color, costs in allCardsLevel0.items():
-            for cost in costs:
-                points = cost.pop("points", 0)
-                card = Card(color=color, level=level, points=points, cost=cost)
-                self.add_card(card, level)
-        if self.shuffle:        
-            random.shuffle(self.cards[0])
+        allCardsLevel1 = copy.deepcopy(AllCardsLevel1)
+        allCardsLevel2 = copy.deepcopy(AllCardsLevel2)
+        allCardLevels = [allCardsLevel0, allCardsLevel1, allCardsLevel2]
+        for level, allCards in enumerate(allCardLevels):
+            for color, costs in allCards.items():
+                for cost in costs:
+                    points = cost.pop("points", 0)
+                    card = Card(color=color, level=level, points=points, cost=cost)
+                    self.add_card(card, level)
+        if self.shuffle:    
+            for level in range(self.num_card_levels):    
+                random.shuffle(self.cards[level])
         self.max_total_points = sum(card.points for level in self.cards for card in level)
 
         self.num_cards = len(self.cards[0]) + len(self.cards[1]) + len(self.cards[2])
