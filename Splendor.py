@@ -185,6 +185,8 @@ class Game:
         self.num_coins_per_color = 6
         self.num_total_coins = self.num_colors * self.num_coins_per_color
         self.max_coins_per_turn = 3
+        self.min_coins_for_two = 4
+        self.num_turns_take_two_coins = 0
 
         self.num_card_levels = 3
   
@@ -251,6 +253,16 @@ class Game:
     def add_noble(self, noble: Noble):
         self.nobles.append(noble)
 
+    def get_average_score(self):
+        """
+        Calculate the average score of all players in the game.
+
+        Returns:
+            float: The average score of all players.
+        """
+        total_points = sum(player.get_total_points() for player in self.players)
+        return total_points / len(self.players) if self.players else 0
+    
     def take_next_coin(self, current_player):
         took_coin = None
         for color, coins in self.coins.items():
@@ -279,10 +291,28 @@ class Game:
     def are_coins_available(self):
         return self.num_coins_available() > 0
     
+    def take_two_coins_for_card(self, current_player, card):
+
+        # should you take two?  can you?
+        # what is the difference between what the player has and what the card costs?
+        needs = current_player.get_cost_difference(card)
+        print(f"needs {needs} for card {card}")
+        for color, numCoins in needs.items():
+            if numCoins >= 2 and len(self.coins[color]) >= self.min_coins_for_two:
+                self.take_coin_of_color(current_player=current_player, color=color)
+                self.take_coin_of_color(current_player=current_player, color=color)
+                self.num_turns_take_two_coins += 1
+                return False
+            
+        # if not
+        return False
+    
     def take_coins_for_card(self, current_player, card):
         print(f"take_coins_for_card {card}")
         took_coin = None
         took_colors = []
+        if self.take_two_coins_for_card(current_player, card):
+            return True
         for coinTake in range(self.max_coins_per_turn):
             print(f"coinTake: {coinTake}")
             if current_player.can_take_coin() and self.are_coins_available():
@@ -372,17 +402,19 @@ class Game:
         """
 
         # well first just buy any card that can be afforded
-        for card in self.cards[0][:self.num_cards_visible]:
-            if current_player.can_afford_card(card):
-                self.buy_card(current_player, card)
-                return card, True 
+        for level in range(self.num_card_levels):
+            for card in self.cards[level][:self.num_cards_visible]:
+                if current_player.can_afford_card(card):
+                    self.buy_card(current_player, card)
+                    return card, True 
             
         cheapest_card = None
         # what's the cheapest card?
-        for card in self.cards[0][:self.num_cards_visible]:
-            print(f"checking card {card} w/ weighted cost {card.get_weighted_cost()}")
-            if cheapest_card is None or card.get_weighted_cost() < cheapest_card.get_weighted_cost():
-                cheapest_card = card
+        for level in range(self.num_card_levels):
+            for card in self.cards[0][:self.num_cards_visible]:
+                print(f"checking card {card} w/ weighted cost {card.get_weighted_cost()}")
+                if cheapest_card is None or card.get_weighted_cost() < cheapest_card.get_weighted_cost():
+                    cheapest_card = card
 
         if cheapest_card and current_player.can_afford_card(cheapest_card):
             self.buy_card(current_player, cheapest_card)
@@ -460,19 +492,6 @@ class Game:
             print(f"{player.name} buys {card}")
             return True
         return False
-    
-    def take_coin_for_card_old(self, current_player, card):
-        took_coin = False
-        for color, amount in card.cost.items():
-            if amount > 0:
-                for _ in range(amount):
-                    if current_player.can_take_coin() and len(self.coins[color]) > 0:
-                        took_coin = self.take_coin_of_color(current_player, color)
-                        if took_coin:
-                            return took_coin
-                    else:
-                        break
-        return took_coin
     
     def take_coin_for_card(self, current_player: Player, card: Card, disallowed_colors: list):
 

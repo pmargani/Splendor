@@ -5,7 +5,7 @@ from Splendor import Game, RANDOM_STRATEGY, CHEAPEST_STRATEGY
 
 # Constants
 SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 600
+SCREEN_HEIGHT = 800
 CARD_WIDTH = 150
 CARD_HEIGHT = 150
 PLAYER_CARD_WIDTH = 25
@@ -115,6 +115,8 @@ def draw_player_old(player, x, y):
     draw_text(f"Cards: {player.get_cards_dict()}", x, y + 90)
 
 def playSplendorPyGame():
+
+   
     game = Game(num_players=4, max_turns=None, winning_points=1, strategy=CHEAPEST_STRATEGY)
 
     print(f"Players: {game.players}")
@@ -159,14 +161,22 @@ def playSplendorPyGame():
 
         # Draw coins in the middle of the screen
         for i, (color, coins) in enumerate(game.coins.items()):
-            draw_coin(color, SCREEN_WIDTH // 2 + i * (COIN_RADIUS * 2 + 10), SCREEN_HEIGHT // 2)
-            draw_text(str(len(coins)), SCREEN_WIDTH // 2 + i * (COIN_RADIUS * 2 + 10) - 10, SCREEN_HEIGHT // 2 + COIN_RADIUS + 5)
+            draw_coin(color, SCREEN_WIDTH // 2 + i * (COIN_RADIUS * 2 + 10), SCREEN_HEIGHT - 250)
+            draw_text(str(len(coins)), SCREEN_WIDTH // 2 + i * (COIN_RADIUS * 2 + 10) - 10, (SCREEN_HEIGHT - 250) + COIN_RADIUS + 5)
 
 
         # Draw visible cards
-        for level, cards in enumerate(game.cards):
+        # for level, cards in enumerate(game.cards):
+        # Draw visible cards
+        for level in [2, 1, 0]:
+            cards = game.cards[level]
+            y_position = 10 + (2 - level) * (CARD_HEIGHT + 10)
             for j, card in enumerate(cards[:game.num_cards_visible]):
-                draw_card(card, 300 + j * (CARD_WIDTH + 10), 10 + level * (CARD_HEIGHT + 10))
+                draw_card(card, 300 + j * (CARD_WIDTH + 10), y_position)
+        # for level in [2, 1, 0]:
+        #     cards = game.cards[level]    
+        #     for j, card in enumerate(cards[:game.num_cards_visible]):
+        #         draw_card(card, 300 + j * (CARD_WIDTH + 10), 10 + level * (CARD_HEIGHT + 10))
 
 
         # Check for button click
