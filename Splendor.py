@@ -16,6 +16,16 @@ COLORS = ["red", "blue", "green", "white", "black"]
 COLORS_DICT = {color: 0 for color in COLORS}
 
 class Card:
+    """
+    Represents a card in the game Splendor.
+    Attributes:
+        points (int): The number of points the card is worth.
+        color (str): The color of the card.
+        level (int, optional): The level of the card. Defaults to 0.
+        cost (dict, optional): The cost to acquire the card, represented as a dictionary where keys are colors and values are the number of coins required. Defaults to None.
+        owner (str, optional): The owner of the card. Defaults to None.
+    """    
+
     def __init__(self,  color: str, level: Optional[int]=0, points: Optional[int]=0, cost: Optional[dict]=None, owner: Optional[str] = None):
         self.points = points
         self.color = color
@@ -24,12 +34,33 @@ class Card:
         self.cost = cost
 
     def get_filtered_cost(self):
+        """
+        Returns a dictionary of the cost items where the amount is greater than zero.
+        Returns:
+            dict: A dictionary with color as keys and positive amounts as values.
+        """
+
         return {color: amount for color, amount in self.cost.items() if amount > 0}
 
     def get_cost_total_coins(self):
+        """
+        Calculate the total cost in coins.
+        This method sums up the values of all the coins in the cost dictionary.
+        Returns:
+            int: The total amount of coins.
+        """
+
         return sum(amount for amount in self.cost.values())
 
     def get_cost_total_num_colors(self):
+        """
+        Calculate the total number of different colors required for the cost.
+        This method counts the number of different colors (or types of resources) 
+        that have a cost greater than zero.
+        Returns:
+            int: The total number of different colors with a non-zero cost.
+        """
+
         return len([amount for amount in self.cost.values() if amount > 0])
     
     def get_weighted_cost(self):
@@ -59,6 +90,11 @@ class Card:
                 self.cost == other.cost)
 
 class Coin:
+
+    """
+    Represents a Coin in the game Splendor
+    """
+
     def __init__(self, color: str, owner: Optional[str] = None, wild: bool = False):
         self.color = color
         self.owner = owner
@@ -69,6 +105,11 @@ class Coin:
 
 
 class Noble:
+
+    """
+    Represents a Noble in the game Splendor
+    """
+    
     def __init__(self, points: int, colors: list, owner: str):
         self.points = points
         self.colors = colors
@@ -78,6 +119,18 @@ class Noble:
         return f"Noble(points={self.points}, colors={self.colors}, owner={self.owner})"
     
 class Player:
+    """
+    Represents a player in the game Splendor.
+    Attributes:
+        name (str): The name of the player.
+        strategy (str): The strategy used by the player.
+        coins (list): The list of coins the player has.
+        cards (list): The list of cards the player has.
+        nobles (list): The list of nobles the player has.
+        max_coins (int): The maximum number of coins a player can have.
+    """
+
+    
     def __init__(self, name: str, strategy: str = RANDOM_STRATEGY):
         self.name = name
         self.strategy = strategy
@@ -97,12 +150,32 @@ class Player:
         self.nobles.append(noble)
 
     def can_add_coin(self):
+        """
+        Check if a coin can be added to the collection.
+        Returns:
+            bool: True if the number of coins is less than the maximum allowed, False otherwise.
+        """
+
         return len(self.coins) < self.max_coins
 
     def get_total_points(self):
+        """
+        Calculate the total points from cards and nobles.
+        Returns:
+            int: The total points accumulated from both cards and nobles.
+        """
+
         return sum(card.points for card in self.cards) + sum(noble.points for noble in self.nobles)
 
     def get_coins_dict(self):
+        """
+        Generate a dictionary representing the count of each coin color.
+        This method iterates through the list of coins and counts the number of coins for each color.
+        The result is a dictionary where the keys are the colors and the values are the counts of coins of that color.
+        Returns:
+            dict: A dictionary with coin colors as keys and their respective counts as values.
+        """
+
         coins_dict = {color: 0 for color in COLORS}
         for coin in self.coins:
             if coin.color in coins_dict:
@@ -112,6 +185,17 @@ class Player:
         return coins_dict
 
     def get_cards_dict(self):
+        """
+        Generate a dictionary representing the count of cards for each color.
+        This method iterates through the cards in the `self.cards` list and counts 
+        the number of cards for each color defined in the `COLORS` list. The result 
+        is a dictionary where the keys are colors and the values are the counts of 
+        cards of that color.
+        Returns:
+            dict: A dictionary with colors as keys and the count of cards of each 
+            color as values.
+        """
+
         cards_dict = {color: 0 for color in COLORS}
         for card in self.cards:
             if card.color in cards_dict:
@@ -121,6 +205,17 @@ class Player:
         return cards_dict       
 
     def get_colors_dict(self):
+        """
+        Generate a dictionary that combines the counts of cards and coins for each color.
+        This method retrieves the counts of cards and coins for each color from their respective
+        dictionaries and sums them up to create a combined dictionary.
+        This is used as a way to know what the resources are that a player has
+        for purchasing another Card.
+        Returns:
+            dict: A dictionary where the keys are colors and the values are the combined counts
+                  of cards and coins for each color.
+        """
+
         colors_dict = {}
         cards_dict = self.get_cards_dict()
         coins_dict = self.get_coins_dict()
@@ -129,6 +224,15 @@ class Player:
         return colors_dict
 
     def get_cost_difference(self, card: Card):
+        """
+        Calculate the difference in cost between the player's available resources and the card's cost.
+        Args:
+            card (Card): The card for which the cost difference is being calculated.
+        Returns:
+            dict: A dictionary where the keys are the resource colors and the values are the differences 
+              between the card's cost and the player's available resources for each color.
+        """
+
         player = self.get_colors_dict()
         diff = {}
         for color, colorCost in card.cost.items():
@@ -136,6 +240,15 @@ class Player:
         return diff
         
     def can_afford_card(self, card: Card):
+        """
+        Determines if the player can afford a given card based on their current resources.
+        Args:
+            card (Card): The card to check affordability for. The card has a cost attribute which is a dictionary
+                         mapping resource colors to their respective costs.
+        Returns:
+            bool: True if the player can afford the card, False otherwise.
+        """
+
         colors_dict = self.get_colors_dict()
         for color, cost in card.cost.items():
             if colors_dict.get(color, 0) < cost:
@@ -143,6 +256,12 @@ class Player:
         return True
 
     def can_take_coin(self):
+        """
+        Determines if a coin can be taken based on the current number of coins.
+        Returns:
+            bool: True if the number of coins is less than the maximum allowed, False otherwise.
+        """
+
         return len(self.coins) < self.max_coins
     
     def __repr__(self) -> str:
@@ -156,6 +275,16 @@ class Player:
 
 class Game:
 
+    """
+    Represents a Splendor Game; that is, the 'board' (cards, coins, nobles)
+    and the Players.  The game manages the flow of the game, including taking turns,
+    and ending the game when certain states are reached.
+    Attributes:
+        num_players (int): The number of players in the game.
+        winning_points (int): The number of points needed to win the game.
+        shuffle (bool): Whether to shuffle the cards at the start of the game.
+        strategy (str): The strategy used by the players.
+    """
     def __init__(self, 
         num_players=4,
         max_turns=None,
