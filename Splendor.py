@@ -325,6 +325,16 @@ class Game:
         self.init_game()
 
     def init_game(self):
+        """
+        Initializes the game by setting up players, coins, and cards.
+        - Creates players based on the number of players specified in `self.num_players`.
+        - Initializes the current player to the first player in the list.
+        - Creates stacks of coins for each color specified in `COLORS`.
+        - Deep copies card levels from predefined card sets and creates card objects for each card.
+        - Shuffles the cards if `self.shuffle` is set to True.
+        - Calculates the maximum total points available in the game.
+        - Calculates the total number of cards across all levels.
+        """
 
         # Create players based on self.num_players
         for i in range(self.num_players):
@@ -354,6 +364,15 @@ class Game:
         self.num_cards = len(self.cards[0]) + len(self.cards[1]) + len(self.cards[2])
 
     def get_winner(self):
+        """
+        Determines the winner of the game based on the highest total points.
+        Iterates through all players and compares their total points to find the player
+        with the maximum points.
+        Returns:
+            Player: The player with the highest total points. If there are no players,
+                    returns None.
+        """
+
         max_points = -1
         winner = None
         for player in self.players:
@@ -364,6 +383,12 @@ class Game:
         return winner
         
     def next_turn(self):
+        """
+        Advances the game to the next player's turn.
+        This method updates the current turn to the next player in the list of players.
+        It also increments the total number of turns taken in the game.
+        """
+
         self.turn = (self.turn + 1) % len(self.players)
         self.num_turns += 1
 
@@ -393,6 +418,16 @@ class Game:
         return total_points / len(self.players) if self.players else 0
     
     def take_next_coin(self, current_player):
+        """
+        Allows the current player to take the next available coin from the bank.
+        This method iterates through the available coins in the bank and allows the current player to take one coin.
+        The coin is then assigned to the current player, and a message is printed indicating the action.
+        Args:
+            current_player (Player): The player who is taking the coin.
+        Returns:
+            Coin: The coin that was taken by the current player, or None if no coins were available.
+        """
+
         took_coin = None
         for color, coins in self.coins.items():
             if coins:
@@ -404,7 +439,15 @@ class Game:
                 break
         return took_coin
 
-    def take_coins(self, current_player):
+    def take_next_coins(self, current_player):
+        """
+        Allows the current player to take coins up to the maximum allowed per turn.
+        Args:
+            current_player (Player): The player who is taking the coins.
+        Returns:
+            Coin: The last coin taken by the player, or None if no coins were taken.
+        """
+
         took_coin = None
         for cointTake in range(self.max_coins_per_turn):
             if current_player.can_take_coin():
@@ -415,12 +458,34 @@ class Game:
         return took_coin
 
     def num_coins_available(self):
+        """
+        Calculate the total number of coins available.
+        This method sums the lengths of all lists of coins for each color in the `self.coins` dictionary.
+        Returns:
+            int: The total number of coins available.
+        """
+
         return sum([len(coinsOfColor) for _, coinsOfColor in self.coins.items()])
     
     def are_coins_available(self):
+        """
+        Check if there are any coins available.
+        Returns:
+            bool: True if there are coins available, False otherwise.
+        """
+
         return self.num_coins_available() > 0
     
     def take_two_coins_for_card(self, current_player, card):
+        """
+        Allows the current player to take two coins of the same color if they need at least two coins of that color to purchase the given card,
+        and if there are enough coins of that color available.
+        Args:
+            current_player (Player): The player who is taking the coins.
+            card (Card): The card the player is attempting to purchase.
+        Returns:
+            bool: True if the player successfully takes two coins, False otherwise.
+        """
 
         # should you take two?  can you?
         # what is the difference between what the player has and what the card costs?
@@ -431,12 +496,26 @@ class Game:
                 self.take_coin_of_color(current_player=current_player, color=color)
                 self.take_coin_of_color(current_player=current_player, color=color)
                 self.num_turns_take_two_coins += 1
-                return False
+                return True
             
         # if not
         return False
     
     def take_coins_for_card(self, current_player, card):
+        """
+        Allows the current player to take coins for a specified card.
+        This method attempts to take coins for the current player based on the card provided.
+        It first checks if the player can take two coins for the card. If not, it proceeds to
+        take coins up to the maximum allowed per turn. The method ensures that the player can
+        take a coin and that coins are available before attempting to take a coin for the card.
+        If a specific coin cannot be taken, it attempts to take a random coin.
+        Args:
+            current_player (Player): The player who is taking the coins.
+            card (Card): The card for which the coins are being taken.
+        Returns:
+            Coin or None: The last coin taken, or None if no coin was taken.
+        """
+
         print(f"take_coins_for_card {card}")
         took_coin = None
         took_colors = []
@@ -456,6 +535,14 @@ class Game:
         return took_coin
 
     def color_with_no_coins(self):
+        """
+        Returns a list of colors that have no coins.
+        This method iterates over the coins dictionary and checks for colors
+        that have a coin count of zero. It returns a list of such colors.
+        Returns:
+            list: A list of colors (keys from the coins dictionary) that have no coins.
+        """
+
         return [color for color, coins in self.coins.items() if not coins]
     
     def take_random_coins(self, current_player: Player):
@@ -485,6 +572,15 @@ class Game:
         return took_coin
     
     def take_random_coin(self, current_player: Player, disallowed_colors: list):
+        """
+        Allows the current player to take a random coin of an available color that is not in the disallowed colors list.
+        Args:
+            current_player (Player): The player who is taking the coin.
+            disallowed_colors (list): A list of colors that the player is not allowed to take.
+        Returns:
+            bool: True if the coin was successfully taken, False otherwise.
+        """
+
         available_colors = [color for color, coins in self.coins.items() if coins and color not in disallowed_colors]
         if not available_colors:
             return None
@@ -623,6 +719,18 @@ class Game:
         return False
     
     def take_coin_for_card(self, current_player: Player, card: Card, disallowed_colors: list):
+        """
+        Attempts to take a coin for the current player to help them purchase a specified card.
+        This method calculates the difference between the player's current coins and the cost of the card.
+        It then tries to take a coin of a needed color that is not in the disallowed colors list.
+        Args:
+            current_player (Player): The player who is attempting to take a coin.
+            card (Card): The card the player is attempting to purchase.
+            disallowed_colors (list): A list of colors that the player is not allowed to take.
+        Returns:
+            Coin or None: the coin taken, or None if no coin could be taken.
+        """
+
 
         took_coin = None
 
@@ -640,6 +748,15 @@ class Game:
         return took_coin        
 
     def take_coin_of_color(self, current_player, color):
+        """
+        Allows the current player to take a coin of the specified color from the board.
+        Parameters:
+        current_player (Player): The player who is taking the coin.
+        color (str): The color of the coin to be taken.
+        Returns:
+        Coin: The coin that was taken by the player, or None if no coin of the specified color is available.
+        """
+
         took_coin = None
         # t = sum([len(c) for c in self.coins.values()])
         # print(f"num coins on board: {t}")
@@ -807,12 +924,26 @@ class Game:
                 print(card)
 
     def describe(self):
+        """
+        Prints a description of the game, including the number of players, 
+        the number of turns played, and details about players, coins, and cards.
+        """
+
         print(f"Game with {self.num_players} players and {self.num_turns} turns played.")
         self.describe_players()
         self.describe_coins()
         self.describe_cards()
 
     def validate_game_state(self):
+        """
+        Validates the current state of the game by checking the following:
+        1. Total number of coins on the board and with players matches the expected total.
+        2. Total number of cards on the board and with players matches the expected total.
+        3. Total number of points from cards on the board and with players matches the expected maximum total points.
+        Returns:
+            bool: True if the game state is valid, False otherwise.
+        """
+
         # Validate the total number of coins
         total_coins = sum(len(coins) for coins in self.coins.values())
         player_coins = sum(len(player.coins) for player in self.players)

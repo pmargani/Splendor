@@ -1,11 +1,12 @@
 import copy
+import os
+import json
 
 import matplotlib.pyplot as plt
 
 from Splendor import Game
 from Splendor import RANDOM_STRATEGY, CHEAPEST_STRATEGY
-import os
-import json
+
 
 class Experiment:
     """
@@ -96,7 +97,7 @@ class Experiment:
             "num_games": self.num_games,
             "max_turns": self.max_turns,
             "winning_points": self.winning_points,
-            "strategy": self.strategy,
+            "strategy": self.strategy, 
             # "results": [game.__dict__ for game in self.results]
         }
 
@@ -156,8 +157,8 @@ class Experiment:
 def main():
 
     # experiment = Experiment2("Experiment2", Game, 1000)  # Replace GameClass with the actual game class name
-    # experiment = Experiment("Random Strategy", Game, 100, strategy=RANDOM_STRATEGY)
-    experiment = Experiment("CheapestStrategy", Game, 100, strategy=CHEAPEST_STRATEGY)
+    experiment = Experiment("RandomStrategy", Game, 1000, strategy=RANDOM_STRATEGY)
+    # experiment = Experiment("CheapestStrategy", Game, 1000, strategy=CHEAPEST_STRATEGY)
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()
