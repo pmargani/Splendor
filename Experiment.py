@@ -38,12 +38,14 @@ class Experiment:
     """
 
 
-    def __init__(self, name, game_class, num_games, max_turns=None, winning_points=15, strategy=RANDOM_STRATEGY):
+
+    def __init__(self, name, game_class, num_games, max_turns=None, winning_points=15, strategy=RANDOM_STRATEGY, strategies=None):
         self.name = name
         self.game_class = game_class
         self.num_games = num_games
         self.max_turns = max_turns
         self.winning_points = winning_points
+        self.strategies = strategies
         self.strategy = strategy
         self.results = []
 
@@ -60,7 +62,7 @@ class Experiment:
         """
 
         for igame in range(self.num_games):
-            game = self.game_class(max_turns=self.max_turns, winning_points=self.winning_points, strategy=self.strategy)
+            game = self.game_class(max_turns=self.max_turns, winning_points=self.winning_points, strategy=self.strategy, strategies=self.strategies)
             # game = self.game_class(max_turns=100, winning_points=1, strategy=RANDOM_STRATEGY)
             game.play_game(interactive=False)
             # input(f"finished game {igame}")
@@ -153,12 +155,33 @@ class Experiment:
         plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
 
+        # Plot the number of wins for each player
+        player_wins = {}
+        for game in self.results:
+            if game.winner is None:
+                continue
+            winner = game.winner.name + "=" + game.winner.strategy
+            if winner not in player_wins:
+                player_wins[winner] = 0
+            player_wins[winner] += 1
+
+        plt.bar(player_wins.keys(), player_wins.values(), edgecolor='black')
+        title = f"{self.name}: Player Wins"
+        plt.title(title)
+        plt.xlabel('Player')
+        plt.ylabel('Number of Wins')
+        plt.xticks(rotation=45)
+        plt.show()
+        plt.savefig(os.path.join(results_dir, f"{title}.png"))
+
 
 def main():
 
     # experiment = Experiment2("Experiment2", Game, 1000)  # Replace GameClass with the actual game class name
-    experiment = Experiment("RandomStrategy", Game, 1000, strategy=RANDOM_STRATEGY)
+    # experiment = Experiment("RandomStrategy", Game, 1000, strategy=RANDOM_STRATEGY)
     # experiment = Experiment("CheapestStrategy", Game, 1000, strategy=CHEAPEST_STRATEGY)
+    strategies = [RANDOM_STRATEGY, RANDOM_STRATEGY, CHEAPEST_STRATEGY, CHEAPEST_STRATEGY]
+    experiment = Experiment("MixedStrategy", Game, 1000, strategies=strategies, winning_points=1)
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()

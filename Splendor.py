@@ -290,13 +290,15 @@ class Game:
         max_turns=None,
         winning_points=15,
         shuffle=True,
-        strategy=None
+        strategy=None,
+        strategies=None
         ):
 
         self.num_players = num_players
         self.winning_points = winning_points
         self.shuffle = shuffle
         self.strategy = strategy
+        self.strategies = strategies
 
         self.cards = [[],[],[]]
 
@@ -307,6 +309,7 @@ class Game:
         self.current_player = None
         self.final_state = None
         self.num_stuck_turns = 0
+        self.winner = None
         
         self.max_turns = max_turns
 
@@ -338,7 +341,8 @@ class Game:
 
         # Create players based on self.num_players
         for i in range(self.num_players):
-            player = Player(name=f"player{i + 1}", strategy=self.strategy)
+            strategy = self.strategy if self.strategies is None else self.strategies[i]
+            player = Player(name=f"player{i + 1}", strategy=strategy)
             self.add_player(player)
         self.current_player = self.players[0]
         
@@ -887,7 +891,8 @@ class Game:
         # Example condition: game ends when a player has 15 points
         for player in self.players:
             if sum(card.points for card in player.cards) >= self.winning_points:
-                print(f"{player.name} wins the game!")
+                print(f"{player.name} wins the game with strategy {player.strategy}!")
+                self.winner = player
                 self.final_state = "winning_points"
                 return True
         # if self.num_coins_available() == 0:
