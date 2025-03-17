@@ -1,4 +1,3 @@
-
 from typing import Optional
 import random
 import copy
@@ -6,10 +5,14 @@ import copy
 from CardsLevel0 import AllCardsLevel0
 from CardsLevel1 import AllCardsLevel1
 from CardsLevel2 import AllCardsLevel2
+import logging
+
+logging.basicConfig(level=logging.WARNING)
 
 RANDOM_STRATEGY = "RANDOM"
 CHEAPEST_STRATEGY = "CHEAPEST"
-STRATEGIES = [RANDOM_STRATEGY, CHEAPEST_STRATEGY]
+POINTS_STRATEGY = "POINTS"
+STRATEGIES = [RANDOM_STRATEGY, CHEAPEST_STRATEGY, POINTS_STRATEGY]
 
 COLORS = ["red", "blue", "green", "white", "black"]
 
@@ -438,7 +441,7 @@ class Game:
                 coin = coins.pop()
                 coin.owner = current_player.name
                 current_player.add_coin(coin)
-                print(f"{current_player.name} takes a {color} coin")
+                logging.info(f"{current_player.name} takes a {color} coin")
                 took_coin = coin
                 break
         return took_coin
@@ -455,7 +458,7 @@ class Game:
         took_coin = None
         for cointTake in range(self.max_coins_per_turn):
             if current_player.can_take_coin():
-                # print(f"{current_player.name} takes a coin")
+                # logging.info(f"{current_player.name} takes a coin")
                 took_coin = self.take_next_coin(current_player)
             else:
                 break    
@@ -494,7 +497,7 @@ class Game:
         # should you take two?  can you?
         # what is the difference between what the player has and what the card costs?
         needs = current_player.get_cost_difference(card)
-        print(f"needs {needs} for card {card}")
+        logging.info(f"needs {needs} for card {card}")
         for color, numCoins in needs.items():
             if numCoins >= 2 and len(self.coins[color]) >= self.min_coins_for_two:
                 self.take_coin_of_color(current_player=current_player, color=color)
@@ -520,15 +523,15 @@ class Game:
             Coin or None: The last coin taken, or None if no coin was taken.
         """
 
-        print(f"take_coins_for_card {card}")
+        logging.info(f"take_coins_for_card {card}")
         took_coin = None
         took_colors = []
         if self.take_two_coins_for_card(current_player, card):
             return True
         for coinTake in range(self.max_coins_per_turn):
-            print(f"coinTake: {coinTake}")
+            logging.info(f"coinTake: {coinTake}")
             if current_player.can_take_coin() and self.are_coins_available():
-                # print(f"{current_player.name} takes a coin")
+                # logging.info(f"{current_player.name} takes a coin")
                 took_coin = self.take_coin_for_card(current_player, card, took_colors)
                 if took_coin is None:
                     took_coin = self.take_random_coin(current_player, took_colors)
@@ -562,11 +565,11 @@ class Game:
         took_coin = None
         coins_taken = []
         for i in range(self.max_coins_per_turn):
-            # print(f"coinTake: {i}")
+            # logging.info(f"coinTake: {i}")
             if current_player.can_take_coin():
                 disallowed = self.color_with_no_coins() + coins_taken
                 took_coin = self.take_random_coin(current_player, disallowed_colors=disallowed)
-                # print(f"took_coin: {took_coin}")
+                # logging.info(f"took_coin: {took_coin}")
                 if not took_coin:
                     break
                 # ensures we don't take that color again this turn
@@ -611,12 +614,36 @@ class Game:
                 if self.can_buy_card(current_player, card):
                     bought_card = self.buy_card(current_player, card)
                     if bought_card:
-                        print(f"{current_player.name} buys {card}")
+                        logging.info(f"{current_player.name} buys {card}")
                         return True
                 else:
-                    print(f"{current_player.name} {current_player.get_colors_dict()} cannot buy {card}")    
+                    logging.info(f"{current_player.name} {current_player.get_colors_dict()} cannot buy {card}")    
         return False
 
+    def buy_points_card(self, current_player):
+
+        # well first just buy any card with points that can be afforded
+        for level in range(self.num_card_levels):
+            for card in self.cards[level][:self.num_cards_visible]:
+                if current_player.can_afford_card(card) and card.points > 0:
+                    self.buy_card(current_player, card)
+                    return card, True 
+            
+        points_card = None
+        # what's the cheapest card that has points?
+        for level in range(self.num_card_levels):
+            for card in self.cards[0][:self.num_cards_visible]:
+                logging.info(f"checking card {card} w/ points {card.points}")
+                if points_card is None or card.get_weighted_cost() > points_card.get_weighted_cost() and card.points > 0:
+                    points_card = card
+
+        if points_card and current_player.can_afford_card(points_card):
+            self.buy_card(current_player, points_card)
+            logging.info(f"{current_player.name} buys {points_card}")
+            return points_card, True
+        
+        return points_card, False
+    
     def buy_cheapest_card(self, current_player):
         """
         Allows the current player to buy the cheapest available card from the visible cards.
@@ -641,13 +668,13 @@ class Game:
         # what's the cheapest card?
         for level in range(self.num_card_levels):
             for card in self.cards[0][:self.num_cards_visible]:
-                print(f"checking card {card} w/ weighted cost {card.get_weighted_cost()}")
+                logging.info(f"checking card {card} w/ weighted cost {card.get_weighted_cost()}")
                 if cheapest_card is None or card.get_weighted_cost() < cheapest_card.get_weighted_cost():
                     cheapest_card = card
 
         if cheapest_card and current_player.can_afford_card(cheapest_card):
             self.buy_card(current_player, cheapest_card)
-            print(f"{current_player.name} buys {cheapest_card}")
+            logging.info(f"{current_player.name} buys {cheapest_card}")
             return cheapest_card, True
         
         return cheapest_card, False
@@ -671,7 +698,7 @@ class Game:
                                     current_player.coins.remove(coin)
                                     self.coins[color].append(coin)
                                     break
-                    print(f"{current_player.name} buys {card}")
+                    logging.info(f"{current_player.name} buys {card}")
                     bought_card = True
                     last_card = card
                     break
@@ -713,12 +740,12 @@ class Game:
                     for _ in range(needs_coins):           
                         for coin in player.coins:
                             if coin.color == color:
-                                print(f"{player.name} spends coin {color}")
+                                logging.info(f"{player.name} spends coin {color}")
                                 # remove coin from player and give back to board
                                 player.coins.remove(coin)
                                 self.coins[color].append(coin)
                                 break
-            print(f"{player.name} buys {card}")
+            logging.info(f"{player.name} buys {card}")
             return True
         return False
     
@@ -740,7 +767,7 @@ class Game:
 
         # what is the difference between what the player has and what the card costs?
         needs = current_player.get_cost_difference(card)
-        print(f"needs {needs} for card {card}")
+        logging.info(f"needs {needs} for card {card}")
 
         # for each color, try to get one of these
         for color, num in needs.items():
@@ -763,20 +790,20 @@ class Game:
 
         took_coin = None
         # t = sum([len(c) for c in self.coins.values()])
-        # print(f"num coins on board: {t}")
+        # logging.info(f"num coins on board: {t}")
         if self.coins[color]:
             
-            # print(f"num coins {color} coins on baord: {len(self.coins[color])}")
+            # logging.info(f"num coins {color} coins on baord: {len(self.coins[color])}")
             coin = self.coins[color].pop()
-            # print(f"after pop num coins {color} coins on baord: {len(self.coins[color])}")
+            # logging.info(f"after pop num coins {color} coins on baord: {len(self.coins[color])}")
 
             coin.owner = current_player.name
             current_player.add_coin(coin)
-            # print(f"{current_player.name} takes a {color} coin")
+            # logging.info(f"{current_player.name} takes a {color} coin")
             took_coin = coin
 
         # t = sum([len(c) for c in self.coins.values()])
-        # print(f"now num coins on board: {t}")
+        # logging.info(f"now num coins on board: {t}")
 
         return took_coin
     
@@ -791,11 +818,13 @@ class Game:
 
         current_player = self.get_current_player()
         self.current_player = current_player
-        print(f"{current_player.name}'s turn")
+        logging.info(f"{current_player.name}'s turn using strategy {current_player.strategy}")
 
         took_turn = False
         if current_player.strategy == RANDOM_STRATEGY:
             took_turn = self.take_turn_random_strategy(current_player)
+        elif current_player.strategy == POINTS_STRATEGY:
+            took_turn = self.take_turn_points_strategy(current_player)
         elif current_player.strategy == CHEAPEST_STRATEGY:
             took_turn = self.take_turn_cheapest_strategy(current_player)
         else:
@@ -819,8 +848,17 @@ class Game:
             None
         """
         cheapest_card, bought_card = self.buy_cheapest_card(current_player)
+        logging.warning(f"cheapest_card: {cheapest_card}, bought? {bought_card}")
         if not bought_card and cheapest_card:
             return self.take_coins_for_card(current_player, cheapest_card)
+        return bought_card 
+    
+    def take_turn_points_strategy(self, current_player):
+        
+        card, bought_card = self.buy_points_card(current_player)
+        logging.warning(f"points card: {card}, bought? {bought_card}")
+        if not bought_card and card:
+            return self.take_coins_for_card(current_player, card)
         return bought_card 
     
     def take_turn_random_strategy(self, current_player):
@@ -859,7 +897,7 @@ class Game:
         """
 
         if not self.validate_game_state():
-            print("Game state is invalid.")
+            logging.info("Game state is invalid.")
             return
 
         if interactive:
@@ -868,7 +906,7 @@ class Game:
         while not self.is_game_over():
             self.take_turn()
             if not self.validate_game_state():
-                print("Game state is invalid.")
+                logging.info("Game state is invalid.")
                 break
             self.describe()
 
@@ -885,22 +923,22 @@ class Game:
             bool: True if the game is over, False otherwise.
         """
         if self.max_turns is not None and self.num_turns >= self.max_turns:
-            print("Game over: maximum number of turns reached.")
+            logging.info("Game over: maximum number of turns reached.")
             self.final_state = "max_turns"
             return True
         # Example condition: game ends when a player has 15 points
         for player in self.players:
             if sum(card.points for card in player.cards) >= self.winning_points:
-                print(f"{player.name} wins the game with strategy {player.strategy}!")
+                logging.info(f"{player.name} wins the game with strategy {player.strategy}!")
                 self.winner = player
                 self.final_state = "winning_points"
                 return True
         # if self.num_coins_available() == 0:
-            # print("No coins left on the board.")
+            # logging.info("No coins left on the board.")
             # self.final_state = "no_coins"
             # return True
         if self.num_stuck_turns == self.num_players:
-            print("every player is stuck")
+            logging.info("every player is stuck")
             self.final_state = "players_stuck"
             return True   
         
@@ -914,19 +952,19 @@ class Game:
 
     def describe_players(self):
         for player in self.players:
-            print(player.description())
+            logging.info(player.description())
 
     def describe_coins(self):
-        print("Board Coins:")
+        logging.info("Board Coins:")
         for color, coins in self.coins.items():
-            print(f"{color}: {len(coins)}")
+            logging.info(f"{color}: {len(coins)}")
 
     def describe_cards(self):
-        print("Visible Cards:")
+        logging.info("Visible Cards:")
         for level, cards in enumerate(self.cards):
-            print(f"Level {level}:")
+            logging.info(f"Level {level}:")
             for card in cards[:self.num_cards_visible]:
-                print(card)
+                logging.info(card)
 
     def describe(self):
         """
@@ -934,7 +972,7 @@ class Game:
         the number of turns played, and details about players, coins, and cards.
         """
 
-        print(f"Game with {self.num_players} players and {self.num_turns} turns played.")
+        logging.info(f"Game with {self.num_players} players and {self.num_turns} turns played.")
         self.describe_players()
         self.describe_coins()
         self.describe_cards()
@@ -953,14 +991,14 @@ class Game:
         total_coins = sum(len(coins) for coins in self.coins.values())
         player_coins = sum(len(player.coins) for player in self.players)
         if total_coins + player_coins != self.num_total_coins:
-            print(f"Coin count mismatch: board coins={total_coins} + player coins={player_coins} != {self.num_total_coins}")
+            logging.info(f"Coin count mismatch: board coins={total_coins} + player coins={player_coins} != {self.num_total_coins}")
             return False
 
         # Validate the total number of cards
         total_cards = sum(len(cards) for cards in self.cards)
         player_cards = sum(len(player.cards) for player in self.players)
         if total_cards + player_cards != self.num_cards:
-            print(f"Card count mismatch: {total_cards + player_cards} != {self.num_cards}")
+            logging.info(f"Card count mismatch: {total_cards + player_cards} != {self.num_cards}")
             return False
 
         # Validate the total number of nobles
@@ -970,12 +1008,12 @@ class Game:
         player_points = sum(player.get_total_points() for player in self.players)
         assert self.max_total_points > 0
         if total_points + player_points != self.max_total_points:
-            print(f"Point count mismatch: {total_points + player_points} != {self.max_total_points}")
+            logging.info(f"Point count mismatch: {total_points + player_points} != {self.max_total_points}")
             return False
         # else:
-            # print(f"Point count match: {total_points} + {player_points} == {self.max_total_points}")
+            # logging.info(f"Point count match: {total_points} + {player_points} == {self.max_total_points}")
 
-        print("Game state is valid.")
+        logging.info("Game state is valid.")
         return True
 
 

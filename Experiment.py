@@ -5,7 +5,7 @@ import json
 import matplotlib.pyplot as plt
 
 from Splendor import Game
-from Splendor import RANDOM_STRATEGY, CHEAPEST_STRATEGY
+from Splendor import RANDOM_STRATEGY, CHEAPEST_STRATEGY, POINTS_STRATEGY
 
 
 class Experiment:
@@ -39,10 +39,11 @@ class Experiment:
 
 
 
-    def __init__(self, name, game_class, num_games, max_turns=None, winning_points=15, strategy=RANDOM_STRATEGY, strategies=None):
+    def __init__(self, name, game_class, num_games, max_turns=None, num_players=4, winning_points=15, strategy=RANDOM_STRATEGY, strategies=None):
         self.name = name
         self.game_class = game_class
         self.num_games = num_games
+        self.num_players = num_players
         self.max_turns = max_turns
         self.winning_points = winning_points
         self.strategies = strategies
@@ -62,7 +63,13 @@ class Experiment:
         """
 
         for igame in range(self.num_games):
-            game = self.game_class(max_turns=self.max_turns, winning_points=self.winning_points, strategy=self.strategy, strategies=self.strategies)
+            game = self.game_class(
+                max_turns=self.max_turns, 
+                num_players=self.num_players,
+                winning_points=self.winning_points,
+                strategy=self.strategy,
+                strategies=self.strategies
+            )
             # game = self.game_class(max_turns=100, winning_points=1, strategy=RANDOM_STRATEGY)
             game.play_game(interactive=False)
             # input(f"finished game {igame}")
@@ -100,6 +107,7 @@ class Experiment:
             "max_turns": self.max_turns,
             "winning_points": self.winning_points,
             "strategy": self.strategy, 
+            "strategies": self.strategies,
             # "results": [game.__dict__ for game in self.results]
         }
 
@@ -112,8 +120,8 @@ class Experiment:
         plt.title(title)
         plt.xlabel('Number of Turns')
         plt.ylabel('Frequency')
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
         num_turns = [int(100*(game.num_turns_take_two_coins / game.num_turns)) for game in self.results]
         plt.hist(num_turns, bins=range(min(num_turns), max(num_turns) + 1), edgecolor='black')
@@ -121,17 +129,17 @@ class Experiment:
         plt.title(title)
         plt.xlabel('Number of Turns')
         plt.ylabel('Frequency')
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
         num_turns = [game.num_turns for game in self.results if game.final_state=="players_stuck"]
         plt.hist(num_turns, bins=range(min(num_turns), max(num_turns) + 1), edgecolor='black')
-        plt.title(title)
         title = f"{self.name}: Number of Turns Played (stuck)"
+        plt.title(title)
         plt.xlabel('Number of Turns')
         plt.ylabel('Frequency')
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
         final_states = [game.final_state for game in self.results]
         unique_states = list(set(final_states))
@@ -143,8 +151,8 @@ class Experiment:
         plt.xlabel('Final State')
         plt.ylabel('Frequency')
         plt.xticks(rotation=45)
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
         average_scores = [game.get_average_score() for game in self.results if game.final_state == "winning_points"]
         plt.hist(average_scores, bins=20, edgecolor='black')
@@ -152,8 +160,8 @@ class Experiment:
         plt.title(title)
         plt.xlabel('Average Score')
         plt.ylabel('Frequency')
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
         # Plot the number of wins for each player
         player_wins = {}
@@ -171,8 +179,8 @@ class Experiment:
         plt.xlabel('Player')
         plt.ylabel('Number of Wins')
         plt.xticks(rotation=45)
-        plt.show()
         plt.savefig(os.path.join(results_dir, f"{title}.png"))
+        plt.show()
 
 
 def main():
@@ -180,8 +188,15 @@ def main():
     # experiment = Experiment2("Experiment2", Game, 1000)  # Replace GameClass with the actual game class name
     # experiment = Experiment("RandomStrategy", Game, 1000, strategy=RANDOM_STRATEGY)
     # experiment = Experiment("CheapestStrategy", Game, 1000, strategy=CHEAPEST_STRATEGY)
-    strategies = [RANDOM_STRATEGY, RANDOM_STRATEGY, CHEAPEST_STRATEGY, CHEAPEST_STRATEGY]
-    experiment = Experiment("MixedStrategy", Game, 1000, strategies=strategies, winning_points=1)
+    # strategies = [RANDOM_STRATEGY, RANDOM_STRATEGY, POINTS_STRATEGY, POINTS_STRATEGY]
+    # strategies = [CHEAPEST_STRATEGY, CHEAPEST_STRATEGY, POINTS_STRATEGY, POINTS_STRATEGY]
+    # strategies = [POINTS_STRATEGY, POINTS_STRATEGY, POINTS_STRATEGY, POINTS_STRATEGY]
+    strategies = [RANDOM_STRATEGY, CHEAPEST_STRATEGY, POINTS_STRATEGY]
+    # experiment = Experiment("MixedStrategy", Game, 1000, strategies=strategies, winning_points=1)
+    # experiment = Experiment("MixedStrategy2", Game, 1000, strategies=strategies, winning_points=1)
+    # experiment = Experiment("MixedStrategy3", Game, 1000, strategies=strategies, winning_points=15)
+    # experiment = Experiment("PointsStrategy", Game, 1000, strategies=strategies, winning_points=15)
+    experiment = Experiment("AllStrategy", Game, 1000, strategies=strategies, num_players=3, winning_points=15)
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()
