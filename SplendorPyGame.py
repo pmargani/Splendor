@@ -1,7 +1,7 @@
 import pygame
 import sys
 
-from Splendor import Game, RANDOM_STRATEGY, CHEAPEST_STRATEGY
+from Splendor import Game, RANDOM_STRATEGY, CHEAPEST_STRATEGY, POINTS_STRATEGY
 
 # Constants
 SCREEN_WIDTH = 1200
@@ -87,7 +87,7 @@ def draw_player_card(color, card_count, x, y):
 def draw_player(player, x, y):
     pygame.draw.rect(screen, BLACK, (x - 2, y - 2, SCREEN_WIDTH // 4 + 4, 204))  # Draw border
     pygame.draw.rect(screen, WHITE, (x, y, SCREEN_WIDTH // 4, 200))
-    draw_text(player.name, x, y)
+    draw_text(f"{player.name}\{player.strategy}", x, y)
     draw_text(f"Points: {player.get_total_points()}", x, y + 30)
     
     # Draw player's coins
@@ -117,7 +117,9 @@ def draw_player_old(player, x, y):
 def playSplendorPyGame():
 
    
-    game = Game(num_players=4, max_turns=None, winning_points=1, strategy=CHEAPEST_STRATEGY)
+    # game = Game(num_players=4, max_turns=None, winning_points=1, strategy=CHEAPEST_STRATEGY)
+    strategies = [POINTS_STRATEGY, CHEAPEST_STRATEGY, RANDOM_STRATEGY]   
+    game = Game(num_players=3, max_turns=None, winning_points=15, strategies=strategies)
 
     print(f"Players: {game.players}")
     initPyGame()

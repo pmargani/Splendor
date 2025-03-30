@@ -240,6 +240,7 @@ class Player:
         diff = {}
         for color, colorCost in card.cost.items():
             diff[color] = colorCost - player[color]
+        logging.warning(f"Cost difference for {self.name} and {card}: {diff}")    
         return diff
         
     def can_afford_card(self, card: Card):
@@ -723,17 +724,21 @@ class Game:
         Returns:
             bool: True if the player successfully buys the card, False otherwise.
         """
+        logging.info(f"Player {player} buying card {card}")
         if self.can_buy_card(player, card):
-            # add card to player and remove from game board
-            player.add_card(card)
-            self.cards[card.level].remove(card)
+            # make a copy of the games coins to double check how many coins player spends
+            org_game_coins = copy.deepcopy(self.coins)
+
             # now pay for the card
             for color, amount in card.cost.items():
+                logging.info(f"card costs {amount} {color}")
                 needs_coins = amount
-                for _ in range(amount):
+                # for _ in range(amount):
+                if True:
                     # first pay using cards
-                    for card in player.cards:
-                        if card.color == color:
+                    for player_card in player.cards:
+                        if player_card.color == color:
+                            logging.info(f"player has card of color {color}")
                             needs_coins -= 1
                 # pay the reminaing balance in coins            
                 if needs_coins > 0:
@@ -745,6 +750,26 @@ class Game:
                                 player.coins.remove(coin)
                                 self.coins[color].append(coin)
                                 break
+
+            # dbl check: how many more coins does the game now have?
+            diffCoins = {}
+            for color, coins in self.coins.items(): 
+                if color in org_game_coins:
+                    diff = len(coins) - len(org_game_coins[color])
+                    diffCoins[color] = diff
+                    # logging.warning(f"game has {diff} more {color} coins")
+                    # dbl check: does the player's cards make up the difference in price?
+                    cards_dict = player.get_cards_dict()
+                    if color in card.cost and color in cards_dict:
+                        # TBF: make exception class
+                        if not card.cost[color] <= diff + cards_dict[color]:
+                            logging.error(f"ERROR: color coin {color} card cost {card.cost[color]} > diff {diff} + cards_dict {cards_dict[color]}")
+                            assert card.cost[color] <= diff + cards_dict[color]
+            
+            # add card to player and remove from game board
+            player.add_card(card)
+            self.cards[card.level].remove(card)
+
             logging.info(f"{player.name} buys {card}")
             return True
         return False
@@ -799,7 +824,7 @@ class Game:
 
             coin.owner = current_player.name
             current_player.add_coin(coin)
-            # logging.info(f"{current_player.name} takes a {color} coin")
+            logging.warning(f"{current_player.name} takes a {color} coin")
             took_coin = coin
 
         # t = sum([len(c) for c in self.coins.values()])

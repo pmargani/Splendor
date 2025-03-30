@@ -71,6 +71,52 @@ class TestGame(unittest.TestCase):
         self.assertEqual(len(player.coins), initial_coin_count + 1)
         self.assertEqual(sum(len(coins) for coins in self.game.coins.values()), initial_game_coin_count - 1)
 
+    def test_player_buys_card_using_coins_and_cards(self):
+        game = Game(shuffle=False)
+
+        self.assertTrue(game.validate_game_state())
+
+        player = game.players[0]
+
+        print(f"card: {game.cards[0][0]}")
+        print(f"player: {player}")
+
+        # take 3 green coins
+        game.take_coin_of_color(player, "green")
+        game.take_coin_of_color(player, "green")
+        game.take_coin_of_color(player, "green")
+
+        # black card costs 3 green
+        card = game.cards[0][0]
+        game.buy_card(player, card)
+
+        self.assertTrue(game.validate_game_state())
+
+        # for i in range(10):
+            # print(f"card {i}: {game.cards[0][i]}")
+        
+        # black card costs 1 green, 3 red, 1 black
+        nextCard = game.cards[0][4]
+        print(f"next card: {nextCard}")
+
+        # take what we need except a black coin
+        game.take_coin_of_color(player, "green")
+        game.take_coin_of_color(player, "red")
+        game.take_coin_of_color(player, "red")
+        game.take_coin_of_color(player, "red")
+
+        # we can buy it because we have 1 black card
+        self.assertTrue(game.can_buy_card(player, nextCard))
+
+        game.buy_card(player, nextCard)
+
+        self.assertTrue(game.validate_game_state())
+
+        # we have bought two cards
+        self.assertEqual(len(player.cards), 2)
+        # and used up all our coins
+        self.assertEqual(len(player.coins), 0)
+
     def test_buy_card(self):
 
         game = Game(shuffle=False)

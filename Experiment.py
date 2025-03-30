@@ -196,7 +196,7 @@ def main():
     # experiment = Experiment("MixedStrategy2", Game, 1000, strategies=strategies, winning_points=1)
     # experiment = Experiment("MixedStrategy3", Game, 1000, strategies=strategies, winning_points=15)
     # experiment = Experiment("PointsStrategy", Game, 1000, strategies=strategies, winning_points=15)
-    experiment = Experiment("AllStrategy", Game, 1000, strategies=strategies, num_players=3, winning_points=15)
+    experiment = Experiment("AllStrategy", Game, 100, strategies=strategies, num_players=3, winning_points=15)
     experiment.run()
     print(experiment.get_results())
     experiment.analyze_results()
